@@ -38,10 +38,10 @@ The branch shows a mature codebase that has completed the core feature steps (1-
 
 ## Suggestions
 
-- Audit whether the 'Our Publications' page (Step 8) has a frontend implementation — the backend newsletter/contact work is visible but the publications showcase page was not confirmed in commits
-- The newsletterSubscriber upsert logic has a subtle bug: `.then((row) => ({ created: !row, row }))` will always set created=false since row is always truthy on success — consider fixing the created flag logic or removing it if unused
-- Add a Jest config file (jest.config.js) to the server to avoid relying solely on --testPathPattern flag; also consider adding @prisma/client mock as a shared test utility
-- Consider adding a CI workflow (GitHub Actions) to run tests automatically on PRs since the test infrastructure is now in place
+- [object Object]
+- [object Object]
+- [object Object]
+- [object Object]
 
 ## Next Steps
 
