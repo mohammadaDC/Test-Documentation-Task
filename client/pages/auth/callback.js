@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
+import { PageLoader } from '../../components/Spinner';
 
 // OAuth callback — receives token from server redirect, stores it, then navigates home
 export default function AuthCallbackPage() {
@@ -14,9 +15,5 @@ export default function AuthCallbackPage() {
     router.replace('/');
   }, [router.query]);
 
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p className="text-gray-500">Signing you in…</p>
-    </div>
-  );
+  return <PageLoader />;
 }

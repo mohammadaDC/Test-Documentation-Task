@@ -46,31 +46,50 @@ async function createPaymentIntent(req, res) {
 }
 
 async function handleWebhook(req, res) {
-  const sig = req.headers['stripe-signature'];
-  let event;
+  // Guard: webhook secret must be configured
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('[webhook] STRIPE_WEBHOOK_SECRET is not set — rejecting all webhook calls');
+    return res.status(500).send('Webhook secret not configured');
+  }
 
+  const sig = req.headers['stripe-signature'];
+  if (!sig) return res.status(400).send('Missing stripe-signature header');
+
+  let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
+    console.error('[webhook] Signature validation failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === 'payment_intent.succeeded') {
-    const pi       = event.data.object;
-    const items    = JSON.parse(pi.metadata.orderItems || '[]');
-    const shipping = JSON.parse(pi.metadata.shippingInfo || '{}');
+    const pi = event.data.object;
+
+    // Avoid duplicate order creation if webhook fires more than once
+    const existing = await prisma.order.findUnique({ where: { stripePaymentIntentId: pi.id } });
+    if (existing) return res.json({ received: true });
+
+    let items, shipping;
+    try {
+      items    = JSON.parse(pi.metadata.orderItems  || '[]');
+      shipping = JSON.parse(pi.metadata.shippingInfo || '{}');
+    } catch (err) {
+      console.error('[webhook] Failed to parse metadata:', err.message);
+      return res.status(400).send('Invalid metadata');
+    }
 
     await prisma.order.create({
       data: {
-        status:                 'PAID',
-        total:                  pi.amount / 100,
-        shippingName:           shipping.name    || '',
-        shippingEmail:          shipping.email   || '',
-        shippingAddress:        shipping.address || '',
-        shippingCity:           shipping.city    || '',
-        shippingZip:            shipping.zip     || '',
-        shippingCountry:        shipping.country || '',
-        stripePaymentIntentId:  pi.id,
+        status:                'PAID',
+        total:                 pi.amount / 100,
+        shippingName:          shipping.name    || '',
+        shippingEmail:         shipping.email   || '',
+        shippingAddress:       shipping.address || '',
+        shippingCity:          shipping.city    || '',
+        shippingZip:           shipping.zip     || '',
+        shippingCountry:       shipping.country || '',
+        stripePaymentIntentId: pi.id,
         items: {
           create: items.map((i) => ({
             bookId:    i.bookId,

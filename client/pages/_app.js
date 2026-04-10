@@ -1,13 +1,18 @@
 import '../styles/globals.css';
 import { CartProvider } from '../context/CartContext';
 import { AuthProvider } from '../context/AuthContext';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function App({ Component, pageProps }) {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Component {...pageProps} />
-      </CartProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <CartProvider>
+          <ErrorBoundary>
+            <Component {...pageProps} />
+          </ErrorBoundary>
+        </CartProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

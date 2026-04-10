@@ -1,4 +1,20 @@
 require('dotenv').config();
+
+// ── Environment variable validation ──────────────────────────────────────────
+const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'];
+const WARNED_ENV   = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
+
+const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error(`[startup] Missing required environment variables: ${missing.join(', ')}`);
+  console.error('[startup] Copy .env.example to .env and fill in the values.');
+  process.exit(1);
+}
+WARNED_ENV.filter((k) => !process.env[k]).forEach((k) =>
+  console.warn(`[startup] Warning: ${k} is not set — related features will be disabled.`)
+);
+// ─────────────────────────────────────────────────────────────────────────────
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');

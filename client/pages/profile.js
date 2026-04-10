@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import Link from 'next/link';
+import { PageLoader } from '../components/Spinner';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -25,7 +26,7 @@ export default function ProfilePage() {
       .finally(() => setOrdersLoading(false));
   }, [user]);
 
-  if (loading || !user) return null;
+  if (loading || !user) return <PageLoader />;
 
   return (
     <Layout title="My Profile – PageTurner Books">
