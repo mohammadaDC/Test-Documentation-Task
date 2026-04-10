@@ -18,9 +18,6 @@ function createTransporter() {
 async function sendMessage(req, res) {
   try {
     const { name, email, subject, message } = req.body;
-    if (!name || !email || !subject || !message) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
 
     const transporter = createTransporter();
 
@@ -60,7 +57,6 @@ async function sendMessage(req, res) {
 async function subscribeNewsletter(req, res) {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required' });
 
     // Check existence first so we only send the welcome email on the first subscription
     const existing = await prisma.newsletterSubscriber.findUnique({ where: { email } });
