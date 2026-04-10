@@ -62,16 +62,18 @@ async function subscribeNewsletter(req, res) {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required' });
 
-    // Persist subscriber — upsert so duplicate requests are idempotent
-    const { created } = await prisma.newsletterSubscriber.upsert({
+    // Check existence first so we only send the welcome email on the first subscription
+    const existing = await prisma.newsletterSubscriber.findUnique({ where: { email } });
+
+    // Upsert — idempotent, safe to call multiple times
+    await prisma.newsletterSubscriber.upsert({
       where:  { email },
       update: {},
       create: { email },
-      select: { subscribedAt: true },
-    }).then((row) => ({ created: !row, row })).catch(() => ({ created: false }));
+    });
 
     // Only send welcome email on first subscription
-    if (created !== false && process.env.SMTP_HOST) {
+    if (!existing && process.env.SMTP_HOST) {
       try {
         const transporter = createTransporter();
         await transporter.sendMail({
