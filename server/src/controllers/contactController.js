@@ -1,4 +1,7 @@
 const nodemailer = require('nodemailer');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -59,17 +62,31 @@ async function subscribeNewsletter(req, res) {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required' });
 
-    const transporter = createTransporter();
+    // Persist subscriber — upsert so duplicate requests are idempotent
+    const { created } = await prisma.newsletterSubscriber.upsert({
+      where:  { email },
+      update: {},
+      create: { email },
+      select: { subscribedAt: true },
+    }).then((row) => ({ created: !row, row })).catch(() => ({ created: false }));
 
-    await transporter.sendMail({
-      from:    `"PageTurner Books" <${process.env.EMAIL_FROM}>`,
-      to:      email,
-      subject: 'Welcome to the PageTurner Books newsletter!',
-      html: `
-        <p>Thanks for subscribing! You'll be the first to hear about new arrivals, author events, and exclusive offers.</p>
-        <p>Happy reading,<br>The PageTurner Books Team</p>
-      `,
-    });
+    // Only send welcome email on first subscription
+    if (created !== false && process.env.SMTP_HOST) {
+      try {
+        const transporter = createTransporter();
+        await transporter.sendMail({
+          from:    `"PageTurner Books" <${process.env.EMAIL_FROM}>`,
+          to:      email,
+          subject: 'Welcome to the PageTurner Books newsletter!',
+          html: `
+            <p>Thanks for subscribing! You'll be the first to hear about new arrivals, author events, and exclusive offers.</p>
+            <p>Happy reading,<br>The PageTurner Books Team</p>
+          `,
+        });
+      } catch (emailErr) {
+        console.error('[newsletter] Welcome email failed (subscriber saved):', emailErr.message);
+      }
+    }
 
     res.json({ message: 'Subscribed successfully' });
   } catch (err) {

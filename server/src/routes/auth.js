@@ -1,11 +1,21 @@
-const express  = require('express');
-const router   = express.Router();
-const ctrl     = require('../controllers/authController');
-const passport = require('passport');
+const express    = require('express');
+const router     = express.Router();
+const rateLimit  = require('express-rate-limit');
+const ctrl       = require('../controllers/authController');
+const passport   = require('passport');
 const { authMiddleware } = require('../middleware/authMiddleware');
 
-router.post('/register', ctrl.register);
-router.post('/login',    ctrl.login);
+// Strict limiter: 10 attempts per 15 minutes per IP on credential endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts from this IP, please try again after 15 minutes.' },
+});
+
+router.post('/register', authLimiter, ctrl.register);
+router.post('/login',    authLimiter, ctrl.login);
 router.get('/me',        authMiddleware, ctrl.me);
 
 // Google OAuth
